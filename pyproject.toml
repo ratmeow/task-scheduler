@@ -1,0 +1,18 @@
+[project]
+name = "task-scheduler"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "ratmeow",email = "rtm_bis@mail.ru"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+]
+
+[tool.poetry]
+packages = [{include = "task_scheduler", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
