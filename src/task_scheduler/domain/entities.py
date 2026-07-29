@@ -1,5 +1,7 @@
+from enum import Enum
 from dataclasses import dataclass, field
 import uuid
+from datetime import datetime
 import re
 from .exceptions import DomainError
 
@@ -23,3 +25,23 @@ class User:
     def _is_valid_login(login: str) -> bool:
         pattern = r"^[A-Za-z\d!@#$%^&*_]{3,}$"
         return bool(re.fullmatch(pattern, login))
+
+class StatusEnum(Enum):
+    TO_DO = "TO DO"
+    PENDING = "PENDING"
+    DONE = "DONE"
+
+@dataclass
+class Task:
+    name: str
+    description: str
+    status: StatusEnum
+    due_ts: datetime | None
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+
+    def __post_init__(self):
+        self.validate()
+
+    def validate(self):
+        if len(self.name) < 3:
+            raise DomainError("Task must be at least 3 characters long")
