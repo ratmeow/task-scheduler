@@ -1,0 +1,39 @@
+services:
+
+  dev-postgres:
+    image: "postgres:16-alpine"
+    ports:
+      - ${POSTGRES_PORT}:5432
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - dev-postgres-data:/var/lib/postgresql/data
+
+  dev-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - ${APP_PORT:-8000}:8000
+    environment:
+      POSTGRES_HOST: dev-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    depends_on:
+      dev-postgres:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+
+volumes:
+  dev-postgres-data:
