@@ -44,4 +44,4 @@ class Task:
 
     def validate(self):
         if len(self.name) < 3:
-            raise DomainError("Task must be at least 3 characters long")
+            raise DomainError("Task name must be at least 3 characters long")
