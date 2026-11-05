@@ -15,7 +15,7 @@ test-local:
 	$(MAKE) test-infra-down
 
 test-docker:
-	docker compose -f compose.test.yaml --env-file test.env --profile full up --build --abort-on-container-exit test-backend
+	docker compose -f compose.test.yaml --env-file test.env up --build --abort-on-container-exit test-backend
 	docker compose -f compose.test.yaml --env-file test.env down
 
 dev-infra-up:
