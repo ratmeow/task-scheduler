@@ -1,8 +1,11 @@
 import re
-from .interfaces import Hasher, UserGateway, DBSession
-from .dto import UserRegisterData
+
 from task_scheduler.domain.entities import User
-from .exceptions import PasswordRequirementError, AlreadyExistsError, UserNotFoundError, WrongPasswordError
+
+from .dto import UserRegisterData
+from .exceptions import AlreadyExistsError, PasswordRequirementError, UserNotFoundError, WrongPasswordError
+from .interfaces import DBSession, Hasher, UserGateway
+
 
 class RegisterUserInteractor:
     def __init__(self, user_gateway: UserGateway, hasher: Hasher, db_session: DBSession):

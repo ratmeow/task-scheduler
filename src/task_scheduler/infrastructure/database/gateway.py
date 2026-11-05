@@ -1,6 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from task_scheduler.domain.entities import User
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from task_scheduler.domain.entities import User
+
 
 class PgUserGateway:
     def __init__(self, db_session: AsyncSession):

@@ -10,9 +10,11 @@ class Hasher(Protocol):
     def verify_hash(self, original_text: str, hashed_text: str) -> bool:
         pass
 
+
 class DBSession(Protocol):
     async def commit(self) -> None:
         pass
+
 
 class UserGateway(Protocol):
     async def get_by_id(self, user_id: str) -> User | None:

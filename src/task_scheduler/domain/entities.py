@@ -1,9 +1,11 @@
-from enum import Enum
-from dataclasses import dataclass, field
-import uuid
-from datetime import datetime
 import re
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+
 from .exceptions import DomainError
+
 
 @dataclass
 class User:
@@ -26,10 +28,12 @@ class User:
         pattern = r"^[A-Za-z\d!@#$%^&*_]{3,}$"
         return bool(re.fullmatch(pattern, login))
 
+
 class StatusEnum(Enum):
     TO_DO = "TO DO"
     PENDING = "PENDING"
     DONE = "DONE"
+
 
 @dataclass
 class Task:

@@ -1,15 +1,17 @@
 from typing import AsyncIterable
 
-from dishka import Provider, from_context, Scope, provide, AnyOf
-from task_scheduler.config import Config
+from dishka import AnyOf, Provider, Scope, from_context, provide
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import registry
+
+from task_scheduler.application.interactors import LoginUserInteractor, RegisterUserInteractor
+from task_scheduler.application.interfaces import DBSession, Hasher, UserGateway
+from task_scheduler.config import Config
+from task_scheduler.infrastructure.database.gateway import PgUserGateway
 from task_scheduler.infrastructure.database.orm import create_mapper_registry
 from task_scheduler.infrastructure.database.session import pg_session_maker
-from task_scheduler.infrastructure.database.gateway import PgUserGateway
 from task_scheduler.infrastructure.hasher import BcryptHasher
-from task_scheduler.application.interfaces import DBSession, UserGateway, Hasher
-from task_scheduler.application.interactors import RegisterUserInteractor, LoginUserInteractor
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+
 
 class AppProvider(Provider):
     config = from_context(provides=Config, scope=Scope.APP)
@@ -36,7 +38,6 @@ class AppProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_user_gateway(self, session: AsyncSession) -> UserGateway:
         return PgUserGateway(db_session=session)
-
 
     register_user = provide(RegisterUserInteractor, scope=Scope.REQUEST)
     login_user = provide(LoginUserInteractor, scope=Scope.REQUEST)

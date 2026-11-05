@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, Depends, Form, Request, Response
+from fastapi import APIRouter, Form, Response
 from starlette.responses import JSONResponse
 
 from task_scheduler.application.dto import UserRegisterData
@@ -9,7 +9,6 @@ from task_scheduler.application.interactors import (
     LoginUserInteractor,
     RegisterUserInteractor,
 )
-
 
 from .schemas import UserRegisterRequest
 
@@ -25,11 +24,8 @@ async def register_user(data: Annotated[UserRegisterRequest, Form()], use_case: 
 
 @router.post("/auth/sign-in")
 @inject
-async def login_user_api(
-    data: Annotated[UserRegisterRequest, Form()],
-    use_case: FromDishka[LoginUserInteractor]
-):
-    user_id = await use_case(login_data=UserRegisterData(login=data.login, password=data.password))
+async def login_user_api(data: Annotated[UserRegisterRequest, Form()], use_case: FromDishka[LoginUserInteractor]):
+    await use_case(login_data=UserRegisterData(login=data.login, password=data.password))
     response = JSONResponse(content={"username": data.login})
     return response
 

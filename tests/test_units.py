@@ -1,6 +1,8 @@
 import pytest
+
 from task_scheduler.domain.entities import User
 from task_scheduler.domain.exceptions import DomainError
+
 
 class TestUser:
     def test_create(self):

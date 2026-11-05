@@ -15,6 +15,12 @@ jobs:
         uses: astral-sh/ruff-action@v3
         with:
           args: check .
+
+      - name: Check formatting
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: format --check .
+
   test:
     needs: [lint]
     runs-on: ubuntu-latest

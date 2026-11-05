@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
 from os import environ
+
+from pydantic import BaseModel, Field
+
 
 class PostgresConfig(BaseModel):
     user: str = Field(validation_alias="POSTGRES_USER")
@@ -11,6 +13,7 @@ class PostgresConfig(BaseModel):
     @property
     def pg_async_url(self):
         return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
+
 
 class Config(BaseModel):
     postgres: PostgresConfig = Field(default_factory=lambda: PostgresConfig(**environ))
