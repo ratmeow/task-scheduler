@@ -8,6 +8,8 @@ class AuthConfig(BaseModel):
     access_token_secret: str = Field(validation_alias="ACCESS_TOKEN_SECRET")
     access_token_lifetime_s: int = Field(default=86400, validation_alias="ACCESS_TOKEN_LIFETIME_S")
 
+    refresh_token_lifetime_s: int = Field(default=2592000, validation_alias="REFRESH_TOKEN_LIFETIME_S")
+
 
 class PostgresConfig(BaseModel):
     user: str = Field(validation_alias="POSTGRES_USER")
@@ -21,6 +23,12 @@ class PostgresConfig(BaseModel):
         return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
 
 
+class RedisConfig(BaseModel):
+    host: str = Field(validation_alias="REDIS_HOST")
+    port: int = Field(validation_alias="REDIS_PORT")
+
+
 class Config(BaseModel):
     postgres: PostgresConfig = Field(default_factory=lambda: PostgresConfig(**environ))
+    redis: RedisConfig = Field(default_factory=lambda: RedisConfig(**environ))
     auth: AuthConfig = Field(default_factory=lambda: AuthConfig(**environ))

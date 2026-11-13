@@ -19,7 +19,7 @@ test-docker:
 	docker compose -f compose.test.yaml --env-file test.env down
 
 dev-infra-up:
-	docker compose -f compose.dev.yaml --env-file dev.env up -d dev-postgres
+	docker compose -f compose.dev.yaml --env-file dev.env up -d dev-postgres dev-redis
 
 dev-down:
 	docker compose -f compose.dev.yaml --env-file dev.env down

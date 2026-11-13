@@ -1,6 +1,7 @@
 from typing import AsyncIterable
 
 from dishka import AnyOf, Provider, Scope, from_context, provide
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import registry
 
@@ -12,6 +13,7 @@ from task_scheduler.infrastructure.database.orm import create_mapper_registry
 from task_scheduler.infrastructure.database.session import pg_session_maker
 from task_scheduler.infrastructure.hasher import BcryptHasher
 from task_scheduler.infrastructure.idp.interfaces import IdentityProvider
+from task_scheduler.infrastructure.idp.redis_gateway import RedisTokenGateway
 
 
 class AppProvider(Provider):
@@ -30,8 +32,20 @@ class AppProvider(Provider):
         return pg_session_maker(pg_config=config.postgres)
 
     @provide(scope=Scope.APP)
-    def get_idp(self, config: Config) -> IdentityProvider:
-        return IdentityProvider(auth_config=config.auth)
+    async def get_redis_client(self, config: Config) -> AsyncIterable[Redis]:
+        redis = Redis(host=config.redis.host, port=config.redis.port)
+        try:
+            yield redis
+        finally:
+            await redis.aclose()
+
+    @provide(scope=Scope.APP)
+    def get_redis_token_storage(self, redis_client: Redis) -> RedisTokenGateway:
+        return RedisTokenGateway(redis_client=redis_client)
+
+    @provide(scope=Scope.APP)
+    def get_idp(self, config: Config, redis_token_storage: RedisTokenGateway) -> IdentityProvider:
+        return IdentityProvider(auth_config=config.auth, token_storage_gateway=redis_token_storage)
 
     @provide(scope=Scope.REQUEST)
     async def get_session(
