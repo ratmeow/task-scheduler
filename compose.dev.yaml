@@ -17,6 +17,18 @@ services:
     volumes:
       - dev-postgres-data:/var/lib/postgresql/data
 
+  dev-redis:
+    image: redis:7.2
+    ports:
+      - ${REDIS_PORT}:6379
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - dev-redis-data:/data
+
   dev-backend:
     build:
       context: .
@@ -37,3 +49,4 @@ services:
 
 volumes:
   dev-postgres-data:
+  dev-redis-data:

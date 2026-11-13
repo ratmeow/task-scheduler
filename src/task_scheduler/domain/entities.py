@@ -11,6 +11,7 @@ from .exceptions import DomainError
 class User:
     login: str
     hashed_password: str
+    email: str
     id: uuid.UUID = field(default_factory=uuid.uuid4)
 
     def __post_init__(self):
@@ -22,11 +23,18 @@ class User:
                 "Login must be at least 3 characters long, "
                 "with only Latin letters, digits and special character(!@#$%^&*_)."
             )
+        if not self._is_valid_email(self.email):
+            raise DomainError("Incorrect email")
 
     @staticmethod
     def _is_valid_login(login: str) -> bool:
         pattern = r"^[A-Za-z\d!@#$%^&*_]{3,}$"
         return bool(re.fullmatch(pattern, login))
+
+    @staticmethod
+    def _is_valid_email(email: str) -> bool:
+        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$"
+        return bool(re.fullmatch(pattern, email))
 
 
 class StatusEnum(Enum):

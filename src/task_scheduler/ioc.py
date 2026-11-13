@@ -11,6 +11,7 @@ from task_scheduler.infrastructure.database.gateway import PgUserGateway
 from task_scheduler.infrastructure.database.orm import create_mapper_registry
 from task_scheduler.infrastructure.database.session import pg_session_maker
 from task_scheduler.infrastructure.hasher import BcryptHasher
+from task_scheduler.infrastructure.idp.interfaces import IdentityProvider
 
 
 class AppProvider(Provider):
@@ -27,6 +28,10 @@ class AppProvider(Provider):
     @provide(scope=Scope.APP)
     def get_session_maker(self, config: Config, mapper_registry: registry) -> async_sessionmaker[AsyncSession]:
         return pg_session_maker(pg_config=config.postgres)
+
+    @provide(scope=Scope.APP)
+    def get_idp(self, config: Config) -> IdentityProvider:
+        return IdentityProvider(auth_config=config.auth)
 
     @provide(scope=Scope.REQUEST)
     async def get_session(

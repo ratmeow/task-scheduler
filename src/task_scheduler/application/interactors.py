@@ -2,8 +2,8 @@ import re
 
 from task_scheduler.domain.entities import User
 
-from .dto import UserRegisterData
-from .exceptions import AlreadyExistsError, PasswordRequirementError, UserNotFoundError, WrongPasswordError
+from .dto import UserLoginData, UserRegisterData
+from .exceptions import PasswordRequirementError, UserNotFoundError, WrongPasswordError
 from .interfaces import DBSession, Hasher, UserGateway
 
 
@@ -17,10 +17,11 @@ class RegisterUserInteractor:
         if not self._is_strong_password(password=register_data.password):
             raise PasswordRequirementError()
 
-        user = User(login=register_data.login, hashed_password=self.hasher.hash(text=register_data.password))
-
-        if await self.user_gateway.get_by_login(login=register_data.login) is not None:
-            raise AlreadyExistsError()
+        user = User(
+            email=register_data.email,
+            login=register_data.login,
+            hashed_password=self.hasher.hash(text=register_data.password),
+        )
 
         await self.user_gateway.save(user=user)
         await self.db_session.commit()
@@ -38,7 +39,7 @@ class LoginUserInteractor:
         self.user_gateway = user_gateway
         self.hasher = hasher
 
-    async def __call__(self, login_data: UserRegisterData) -> str:
+    async def __call__(self, login_data: UserLoginData) -> str:
         exist_user = await self.user_gateway.get_by_login(login=login_data.login)
         if not exist_user:
             raise UserNotFoundError(info=login_data.login)

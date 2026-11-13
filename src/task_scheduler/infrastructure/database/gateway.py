@@ -1,6 +1,8 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from task_scheduler.application.exceptions import AlreadyExistsError
 from task_scheduler.domain.entities import User
 
 
@@ -20,3 +22,16 @@ class PgUserGateway:
 
     async def save(self, user: User) -> None:
         self.db_session.add(user)
+        try:
+            await self.db_session.flush()
+        except IntegrityError as exc:
+            constraint = getattr(
+                getattr(exc.orig, "__cause__", None),
+                "constraint_name",
+                None,
+            )
+            match constraint:
+                case "uq_users_login":
+                    raise AlreadyExistsError(user.login)
+                case "uq_users_email":
+                    raise AlreadyExistsError(user.email)
