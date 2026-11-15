@@ -3,20 +3,22 @@
 .PHONY: prod-up prod-down
 .PHONY: test-infra-up test-infra-down
 
+TEST_ARGS ?= --asyncio-mode=auto tests/
+
 test-infra-up:
-	docker compose -f compose.test.yaml --env-file test.env up -d test-postgres
+	docker compose -f compose.test.yaml --env-file test.env up -d --wait test-postgres test-redis
 
 test-infra-down:
 	docker compose -f compose.test.yaml --env-file test.env down
 
 test-local:
 	$(MAKE) test-infra-up
-	export $$(cat test.env | xargs) && pytest
-	$(MAKE) test-infra-down
+	trap '$(MAKE) test-infra-down' EXIT; \
+	export $$(cat test.env | xargs) && pytest $(TEST_ARGS)
 
 test-docker:
-	docker compose -f compose.test.yaml --env-file test.env up --build --abort-on-container-exit test-backend
-	docker compose -f compose.test.yaml --env-file test.env down
+	trap '$(MAKE) test-infra-down' EXIT; \
+	docker compose -f compose.test.yaml --env-file test.env run --build --rm test-backend pytest $(TEST_ARGS)
 
 dev-infra-up:
 	docker compose -f compose.dev.yaml --env-file dev.env up -d dev-postgres dev-redis

@@ -10,7 +10,7 @@ from task_scheduler.application.interactors import (
     LoginUserInteractor,
     RegisterUserInteractor,
 )
-from task_scheduler.infrastructure.idp.interfaces import IdentityProvider
+from task_scheduler.infrastructure.idp.provider import IdentityProvider
 
 from .schemas import UserLoginRequest, UserRegisterRequest
 

@@ -12,8 +12,9 @@ from task_scheduler.infrastructure.database.gateway import PgUserGateway
 from task_scheduler.infrastructure.database.orm import create_mapper_registry
 from task_scheduler.infrastructure.database.session import pg_session_maker
 from task_scheduler.infrastructure.hasher import BcryptHasher
-from task_scheduler.infrastructure.idp.interfaces import IdentityProvider
-from task_scheduler.infrastructure.idp.redis_gateway import RedisTokenGateway
+from task_scheduler.infrastructure.idp.interfaces import TokenStorage
+from task_scheduler.infrastructure.idp.provider import IdentityProvider
+from task_scheduler.infrastructure.idp.redis_storage import RedisTokenStorage
 
 
 class AppProvider(Provider):
@@ -40,12 +41,12 @@ class AppProvider(Provider):
             await redis.aclose()
 
     @provide(scope=Scope.APP)
-    def get_redis_token_storage(self, redis_client: Redis) -> RedisTokenGateway:
-        return RedisTokenGateway(redis_client=redis_client)
+    def get_redis_token_storage(self, redis_client: Redis) -> TokenStorage:
+        return RedisTokenStorage(redis_client=redis_client)
 
     @provide(scope=Scope.APP)
-    def get_idp(self, config: Config, redis_token_storage: RedisTokenGateway) -> IdentityProvider:
-        return IdentityProvider(auth_config=config.auth, token_storage_gateway=redis_token_storage)
+    def get_idp(self, config: Config, token_storage: TokenStorage) -> IdentityProvider:
+        return IdentityProvider(auth_config=config.auth, token_storage=token_storage)
 
     @provide(scope=Scope.REQUEST)
     async def get_session(
