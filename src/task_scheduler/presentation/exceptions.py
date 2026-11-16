@@ -9,6 +9,7 @@ from task_scheduler.application.exceptions import (
     UserNotFoundError,
     WrongPasswordError,
 )
+from task_scheduler.infrastructure.idp.exceptions import WrongTokenError, ExpiredTokenError
 from task_scheduler.domain.exceptions import DomainError
 
 
@@ -36,5 +37,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(WrongPasswordError, ExceptionResponseFactory(401))
     app.add_exception_handler(UnauthorizedError, ExceptionResponseFactory(401))
     app.add_exception_handler(UserNotFoundError, ExceptionResponseFactory(401))
+    app.add_exception_handler(WrongTokenError, ExceptionResponseFactory(401))
+    app.add_exception_handler(ExpiredTokenError, ExceptionResponseFactory(401))
     app.add_exception_handler(ApplicationError, ExceptionResponseFactory(500))
     app.add_exception_handler(Exception, ExceptionResponseFactory(500))

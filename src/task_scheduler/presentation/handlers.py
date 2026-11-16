@@ -2,7 +2,6 @@ from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Cookie, Depends, Form, Response
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.responses import JSONResponse
 
 from task_scheduler.application.dto import UserLoginData, UserRegisterData
@@ -13,6 +12,7 @@ from task_scheduler.application.interactors import (
 from task_scheduler.infrastructure.idp.provider import IdentityProvider
 
 from .schemas import UserLoginRequest, UserRegisterRequest
+from .exceptions import UnauthorizedError
 
 router = APIRouter(prefix="/api")
 
@@ -35,7 +35,8 @@ async def login_user_api(
     access_token = idp.create_access_token(user_id=user_id)
     refresh_token = await idp.create_refresh_token(user_id=user_id)
 
-    response = JSONResponse(content={"username": data.login, "access_token": access_token, "token_type": "bearer"})
+    response = JSONResponse(content={"username": data.login})
+    response.set_cookie(key="access_token", path="/", value=access_token, max_age=idp.settings.access_token_lifetime_s, secure=True, httponly=True)
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -50,20 +51,28 @@ async def login_user_api(
 
 @router.post("/auth/sign-out")
 @inject
-async def logout_user_api(idp: FromDishka[IdentityProvider], response: Response, refresh_token: str = Cookie):
-    await idp.delete_refresh_token(token=refresh_token)
+async def logout_user_api(idp: FromDishka[IdentityProvider], response: Response, refresh_token: Annotated[str | None, Cookie()] = None):
+    if refresh_token is not None:
+        await idp.delete_refresh_token(token=refresh_token)
     response.delete_cookie(
         key="refresh_token",
-        path="/auth/refresh",
+        path="/auth",
+    )
+    response.delete_cookie(
+        key="access_token",
+        path="/",
     )
 
 
 @router.post("/auth/refresh")
 @inject
-async def refresh(idp: FromDishka[IdentityProvider], response: Response, refresh_token: str = Cookie):
+async def refresh(idp: FromDishka[IdentityProvider], response: Response, refresh_token: Annotated[str | None, Cookie()] = None):
+    if refresh_token is None:
+        raise UnauthorizedError()
+
     new_refresh_token, user_id = await idp.rotate_refresh_token(token=refresh_token)
     access_token = idp.create_access_token(user_id=user_id)
-    response = JSONResponse(content={"access_token": access_token, "token_type": "bearer"})
+    response.set_cookie(key="access_token", path="/", value=access_token, max_age=idp.settings.access_token_lifetime_s, secure=True, httponly=True)
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token,
@@ -79,9 +88,10 @@ async def refresh(idp: FromDishka[IdentityProvider], response: Response, refresh
 @router.get("/main")
 @inject
 async def main_test(
-    idp: FromDishka[IdentityProvider], credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
-):
-    result = idp.validate_access_token(token=credentials.credentials)
+    idp: FromDishka[IdentityProvider], access_token: Annotated[str | None, Cookie()] = None):
+    if access_token is None:
+        raise UnauthorizedError()
+    result = idp.validate_access_token(token=access_token)
     return f"HELLO {result} !"
 
 
