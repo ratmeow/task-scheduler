@@ -23,7 +23,7 @@ class IdentityProvider:
         payload = {
             "sub": user_id,
             "iat": now,
-            "exp": now + timedelta(self.settings.access_token_lifetime_s),
+            "exp": now + timedelta(seconds=self.settings.access_token_lifetime_s),
             "jti": str(uuid4()),
         }
         token = jwt.encode(
@@ -40,7 +40,7 @@ class IdentityProvider:
         except jwt.ExpiredSignatureError:
             raise ExpiredTokenError("access")
         except jwt.InvalidTokenError:
-            raise WrongTokenError
+            raise WrongTokenError("access")
 
     @staticmethod
     def _generate_refresh_token() -> str:
