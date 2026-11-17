@@ -20,7 +20,7 @@ class RedisTokenStorage:
                 name=token_data.token_hash, time=timedelta(seconds=token_data.ttl), value=token_data.user_id
             )
         except RedisError as e:
-            logger.error("Redis Internal Error:", e)
+            logger.error("Redis Internal Error: %s", e)
             raise ApplicationError()
 
     async def get(self, token_key: str) -> str:
@@ -31,12 +31,12 @@ class RedisTokenStorage:
                 raise NotFoundError()
             return user_id.decode()
         except RedisError as e:
-            logger.error("Redis Internal Error:", e)
+            logger.error("Redis Internal Error: %s", e)
             raise ApplicationError()
 
     async def delete(self, token_key: str) -> None:
         try:
             await self.redis_client.delete(token_key)
         except RedisError as e:
-            logger.error("Redis Internal Error:", e)
+            logger.error("Redis Internal Error: %s", e)
             raise ApplicationError()

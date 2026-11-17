@@ -11,6 +11,7 @@ from task_scheduler.application.interactors import (
 )
 from task_scheduler.infrastructure.idp.provider import IdentityProvider
 
+from .cookie_manager import TokenCookieManager
 from .exceptions import UnauthorizedError
 from .schemas import UserLoginRequest, UserRegisterRequest
 
@@ -28,79 +29,49 @@ async def register_user(data: Annotated[UserRegisterRequest, Form()], use_case: 
 @inject
 async def login_user_api(
     idp: FromDishka[IdentityProvider],
+    cookie_manager: FromDishka[TokenCookieManager],
     data: Annotated[UserLoginRequest, Form()],
     use_case: FromDishka[LoginUserInteractor],
+    refresh_token: Annotated[str | None, Cookie()] = None,
 ):
     user_id = await use_case(login_data=UserLoginData(login=data.login, password=data.password))
     access_token = idp.create_access_token(user_id=user_id)
+    if refresh_token is not None:
+        await idp.delete_refresh_token(token=refresh_token)
     refresh_token = await idp.create_refresh_token(user_id=user_id)
 
     response = JSONResponse(content={"username": data.login})
-    response.set_cookie(
-        key="access_token",
-        path="/api",
-        value=access_token,
-        max_age=idp.settings.access_token_lifetime_s,
-        secure=True,
-        httponly=True,
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        path="/api/auth",
-        max_age=idp.settings.refresh_token_lifetime_s,
-    )
+    cookie_manager.set_tokens(response=response, access_token=access_token, refresh_token=refresh_token)
     return response
 
 
-@router.post("/auth/sign-out")
+@router.post("/auth/sign-out", status_code=204)
 @inject
 async def logout_user_api(
-    idp: FromDishka[IdentityProvider], response: Response, refresh_token: Annotated[str | None, Cookie()] = None
+    idp: FromDishka[IdentityProvider],
+    response: Response,
+    cookie_manager: FromDishka[TokenCookieManager],
+    refresh_token: Annotated[str | None, Cookie()] = None,
 ):
     if refresh_token is not None:
         await idp.delete_refresh_token(token=refresh_token)
-    response.delete_cookie(
-        key="refresh_token",
-        path="/api/auth",
-    )
-    response.delete_cookie(
-        key="access_token",
-        path="/api",
-    )
+        cookie_manager.delete_tokens(response=response)
 
 
-@router.post("/auth/refresh")
+@router.post("/auth/refresh", status_code=204)
 @inject
 async def refresh(
-    idp: FromDishka[IdentityProvider], response: Response, refresh_token: Annotated[str | None, Cookie()] = None
+    idp: FromDishka[IdentityProvider],
+    response: Response,
+    cookie_manager: FromDishka[TokenCookieManager],
+    refresh_token: Annotated[str | None, Cookie()] = None,
 ):
     if refresh_token is None:
         raise UnauthorizedError()
 
     new_refresh_token, user_id = await idp.rotate_refresh_token(token=refresh_token)
     access_token = idp.create_access_token(user_id=user_id)
-    response.set_cookie(
-        key="access_token",
-        path="/api",
-        value=access_token,
-        max_age=idp.settings.access_token_lifetime_s,
-        secure=True,
-        httponly=True,
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        path="/api/auth",
-        max_age=idp.settings.refresh_token_lifetime_s,
-    )
-    return response
+    cookie_manager.set_tokens(response=response, access_token=access_token, refresh_token=new_refresh_token)
 
 
 @router.get("/main")

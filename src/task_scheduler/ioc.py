@@ -15,6 +15,7 @@ from task_scheduler.infrastructure.hasher import BcryptHasher
 from task_scheduler.infrastructure.idp.interfaces import TokenStorage
 from task_scheduler.infrastructure.idp.provider import IdentityProvider
 from task_scheduler.infrastructure.idp.redis_storage import RedisTokenStorage
+from task_scheduler.presentation.cookie_manager import TokenCookieManager
 
 
 class AppProvider(Provider):
@@ -47,6 +48,10 @@ class AppProvider(Provider):
     @provide(scope=Scope.APP)
     def get_idp(self, config: Config, token_storage: TokenStorage) -> IdentityProvider:
         return IdentityProvider(auth_config=config.auth, token_storage=token_storage)
+
+    @provide(scope=Scope.APP)
+    def get_cookie_manager(self, config: Config) -> TokenCookieManager:
+        return TokenCookieManager(auth_config=config.auth)
 
     @provide(scope=Scope.REQUEST)
     async def get_session(

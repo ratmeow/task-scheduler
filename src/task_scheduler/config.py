@@ -9,6 +9,7 @@ class AuthConfig(BaseModel):
     access_token_lifetime_s: int = Field(default=86400, validation_alias="ACCESS_TOKEN_LIFETIME_S")
 
     refresh_token_lifetime_s: int = Field(default=2592000, validation_alias="REFRESH_TOKEN_LIFETIME_S")
+    cookie_secure: bool = Field(default=False, validation_alias="COOKIE_SECURE")
 
 
 class PostgresConfig(BaseModel):
