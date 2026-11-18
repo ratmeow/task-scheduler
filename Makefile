@@ -29,5 +29,8 @@ dev-down:
 dev-run-backend:
 	docker compose -f compose.dev.yaml --env-file dev.env up --build dev-backend
 
+dev-docker:
+	docker compose -f compose.dev.yaml --env-file dev.env up --build
+
 start-app:
 	export $$(cat dev.env | xargs) && alembic upgrade head && uvicorn task_scheduler.main:create_app --host "0.0.0.0" --port 8080

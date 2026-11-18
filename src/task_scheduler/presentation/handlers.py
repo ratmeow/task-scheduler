@@ -55,7 +55,7 @@ async def logout_user_api(
 ):
     if refresh_token is not None:
         await idp.delete_refresh_token(token=refresh_token)
-        cookie_manager.delete_tokens(response=response)
+    cookie_manager.delete_tokens(response=response)
 
 
 @router.post("/auth/refresh", status_code=204)
