@@ -39,14 +39,13 @@ class User:
 
 class StatusEnum(Enum):
     TO_DO = "TO DO"
-    PENDING = "PENDING"
     DONE = "DONE"
 
 
 @dataclass
 class Task:
     name: str
-    description: str
+    description: str | None
     status: StatusEnum
     due_ts: datetime | None
     id: uuid.UUID = field(default_factory=uuid.uuid4)
