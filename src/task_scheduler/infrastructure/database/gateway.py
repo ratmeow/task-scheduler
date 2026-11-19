@@ -2,8 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from task_scheduler.application.exceptions import AlreadyExistsError
-from task_scheduler.domain.entities import User
+from task_scheduler.application.exceptions import AlreadyExistsError, ApplicationError
+from task_scheduler.domain.entities import Task, User
 
 
 class PgUserGateway:
@@ -35,3 +35,25 @@ class PgUserGateway:
                     raise AlreadyExistsError(user.login)
                 case "uq_users_email":
                     raise AlreadyExistsError(user.email)
+
+
+class PgTaskGateway:
+    def __init__(self, db_session: AsyncSession):
+        self.db_session = db_session
+
+    async def get_by_id(self, task_id: str) -> Task | None:
+        pass
+
+    async def list_by(self) -> list[Task]:
+        pass
+
+    async def save(self, task: Task) -> None:
+        self.db_session.add(task)
+        try:
+            await self.db_session.flush()
+        except IntegrityError as exc:
+            print(exc)
+            raise ApplicationError()
+
+    async def delete(self, task: Task) -> None:
+        pass

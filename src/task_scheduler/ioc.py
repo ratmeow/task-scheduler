@@ -5,10 +5,10 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import registry
 
-from task_scheduler.application.interactors import LoginUserInteractor, RegisterUserInteractor
-from task_scheduler.application.interfaces import DBSession, Hasher, UserGateway
+from task_scheduler.application.interactors import CreateTaskInteractor, LoginUserInteractor, RegisterUserInteractor
+from task_scheduler.application.interfaces import DBSession, Hasher, TaskGateway, UserGateway
 from task_scheduler.config import Config
-from task_scheduler.infrastructure.database.gateway import PgUserGateway
+from task_scheduler.infrastructure.database.gateway import PgTaskGateway, PgUserGateway
 from task_scheduler.infrastructure.database.orm import create_mapper_registry
 from task_scheduler.infrastructure.database.session import pg_session_maker
 from task_scheduler.infrastructure.hasher import BcryptHasher
@@ -64,5 +64,10 @@ class AppProvider(Provider):
     def get_user_gateway(self, session: AsyncSession) -> UserGateway:
         return PgUserGateway(db_session=session)
 
+    @provide(scope=Scope.REQUEST)
+    def get_task_gateway(self, session: AsyncSession) -> TaskGateway:
+        return PgTaskGateway(db_session=session)
+
     register_user = provide(RegisterUserInteractor, scope=Scope.REQUEST)
     login_user = provide(LoginUserInteractor, scope=Scope.REQUEST)
+    create_task = provide(CreateTaskInteractor, scope=Scope.REQUEST)

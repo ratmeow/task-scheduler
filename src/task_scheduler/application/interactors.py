@@ -1,10 +1,12 @@
 import re
+import uuid
+from datetime import datetime, timezone
 
-from task_scheduler.domain.entities import User
+from task_scheduler.domain.entities import StatusEnum, Task, User
 
-from .dto import UserLoginData, UserRegisterData
+from .dto import TaskCreateData, UserLoginData, UserRegisterData
 from .exceptions import PasswordRequirementError, UserNotFoundError, WrongPasswordError
-from .interfaces import DBSession, Hasher, UserGateway
+from .interfaces import DBSession, Hasher, TaskGateway, UserGateway
 
 
 class RegisterUserInteractor:
@@ -47,3 +49,23 @@ class LoginUserInteractor:
         if not self.hasher.verify_hash(original_text=login_data.password, hashed_text=exist_user.hashed_password):
             raise WrongPasswordError()
         return str(exist_user.id)
+
+
+class CreateTaskInteractor:
+    def __init__(self, task_gateway: TaskGateway, db_session: DBSession):
+        self.task_gateway = task_gateway
+        self.db_session = db_session
+
+    async def __call__(self, task_data: TaskCreateData) -> Task:
+        task = Task(
+            name=task_data.name,
+            description=task_data.description,
+            status=StatusEnum.TO_DO,
+            created_ts=datetime.now(timezone.utc),
+            updated_ts=datetime.now(timezone.utc),
+            due_ts=task_data.due_ts,
+            user_id=uuid.UUID(task_data.user_id),
+        )
+        await self.task_gateway.save(task=task)
+        await self.db_session.commit()
+        return task

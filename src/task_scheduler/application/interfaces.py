@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from task_scheduler.domain.entities import User
+from task_scheduler.domain.entities import Task, User
 
 
 class Hasher(Protocol):
@@ -27,4 +27,18 @@ class UserGateway(Protocol):
         pass
 
     async def save(self, user: User) -> None:
+        pass
+
+
+class TaskGateway(Protocol):
+    async def get_by_id(self, task_id: str) -> Task | None:
+        pass
+
+    async def list_by(self) -> list[Task]:
+        pass
+
+    async def save(self, task: Task) -> None:
+        pass
+
+    async def delete(self, task: Task) -> None:
         pass

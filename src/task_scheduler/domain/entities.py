@@ -47,7 +47,10 @@ class Task:
     name: str
     description: str | None
     status: StatusEnum
-    due_ts: datetime | None
+    created_ts: datetime
+    updated_ts: datetime
+    due_ts: datetime
+    user_id: uuid.UUID
     id: uuid.UUID = field(default_factory=uuid.uuid4)
 
     def __post_init__(self):
