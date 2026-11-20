@@ -1,7 +1,7 @@
-from sqlalchemy import UUID, Column, DateTime, Enum, ForeignKey, String, Table, UniqueConstraint
+from sqlalchemy import UUID, Boolean, Column, DateTime, ForeignKey, String, Table, UniqueConstraint
 from sqlalchemy.orm import registry
 
-from task_scheduler.domain.entities import StatusEnum, Task, User
+from task_scheduler.domain.entities import Task, User
 
 
 def register_tables(mapper_registry: registry) -> None:
@@ -22,17 +22,7 @@ def register_tables(mapper_registry: registry) -> None:
         Column("user_id", UUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         Column("name", String, nullable=False),
         Column("description", String, nullable=True),
-        Column(
-            "status",
-            Enum(
-                StatusEnum,
-                native_enum=False,
-                create_constraint=True,
-                values_callable=lambda enum: [e.value for e in enum],
-                name="task_status",
-            ),
-            nullable=False,
-        ),
+        Column("is_complete", Boolean, nullable=False),
         Column("created_ts", DateTime(timezone=True), nullable=False),
         Column("updated_ts", DateTime(timezone=True), nullable=False),
         Column("due_ts", DateTime(timezone=True), nullable=False),

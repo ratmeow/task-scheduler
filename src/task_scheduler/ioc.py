@@ -5,7 +5,13 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import registry
 
-from task_scheduler.application.interactors import CreateTaskInteractor, LoginUserInteractor, RegisterUserInteractor
+from task_scheduler.application.interactors import (
+    CreateTaskInteractor,
+    DeleteTaskInteractor,
+    LoginUserInteractor,
+    RegisterUserInteractor,
+    UpdateTaskInteractor,
+)
 from task_scheduler.application.interfaces import DBSession, Hasher, TaskGateway, UserGateway
 from task_scheduler.config import Config
 from task_scheduler.infrastructure.database.gateway import PgTaskGateway, PgUserGateway
@@ -71,3 +77,5 @@ class AppProvider(Provider):
     register_user = provide(RegisterUserInteractor, scope=Scope.REQUEST)
     login_user = provide(LoginUserInteractor, scope=Scope.REQUEST)
     create_task = provide(CreateTaskInteractor, scope=Scope.REQUEST)
+    update_task = provide(UpdateTaskInteractor, scope=Scope.REQUEST)
+    delete_task = provide(DeleteTaskInteractor, scope=Scope.REQUEST)

@@ -42,7 +42,8 @@ class PgTaskGateway:
         self.db_session = db_session
 
     async def get_by_id(self, task_id: str) -> Task | None:
-        pass
+        task = await self.db_session.get(Task, task_id)
+        return task
 
     async def list_by(self) -> list[Task]:
         pass
@@ -56,4 +57,8 @@ class PgTaskGateway:
             raise ApplicationError()
 
     async def delete(self, task: Task) -> None:
-        pass
+        try:
+            await self.db_session.delete(task)
+        except IntegrityError as exc:
+            print(exc)
+            raise ApplicationError()

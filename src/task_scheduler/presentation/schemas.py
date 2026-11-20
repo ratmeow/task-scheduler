@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from task_scheduler.domain.entities import StatusEnum, Task
+from task_scheduler.domain.entities import Task
 
 
 class UserRegisterRequest(BaseModel):
@@ -22,11 +22,18 @@ class TaskCreateRequest(BaseModel):
     due_ts: datetime
 
 
+class TaskUpdateRequest(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    due_ts: datetime | None = None
+    is_complete: bool | None = None
+
+
 class TaskResponse(BaseModel):
     task_id: str
     name: str
     description: str | None
-    status: StatusEnum
+    is_complete: bool
     due_ts: datetime
     created_ts: datetime
     updated_ts: datetime
@@ -40,6 +47,6 @@ class TaskResponse(BaseModel):
             due_ts=data.due_ts,
             created_ts=data.created_ts,
             updated_ts=data.updated_ts,
-            status=data.status.value,
+            is_complete=data.is_complete,
         )
         return result

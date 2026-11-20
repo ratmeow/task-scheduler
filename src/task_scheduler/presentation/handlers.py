@@ -4,13 +4,19 @@ from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Cookie, Depends, Form, Response
 from starlette.responses import JSONResponse
 
-from task_scheduler.application.dto import TaskCreateData, UserLoginData, UserRegisterData
-from task_scheduler.application.interactors import CreateTaskInteractor, LoginUserInteractor, RegisterUserInteractor
+from task_scheduler.application.dto import TaskCreateData, TaskUpdateData, UserLoginData, UserRegisterData
+from task_scheduler.application.interactors import (
+    CreateTaskInteractor,
+    DeleteTaskInteractor,
+    LoginUserInteractor,
+    RegisterUserInteractor,
+    UpdateTaskInteractor,
+)
 from task_scheduler.infrastructure.idp.provider import IdentityProvider
 
 from .cookie_manager import TokenCookieManager
 from .exceptions import UnauthorizedError
-from .schemas import TaskCreateRequest, TaskResponse, UserLoginRequest, UserRegisterRequest
+from .schemas import TaskCreateRequest, TaskResponse, TaskUpdateRequest, UserLoginRequest, UserRegisterRequest
 
 router = APIRouter(prefix="/api")
 
@@ -89,12 +95,12 @@ async def main_test(idp: FromDishka[IdentityProvider], access_token: AccessToken
     return f"HELLO {result} !"
 
 
-@router.post("/task/create", response_model=TaskResponse)
+@router.post("/task", response_model=TaskResponse)
 @inject
 async def task_create(
-    idp: FromDishka[IdentityProvider],
-    data: Annotated[TaskCreateRequest, Form()],
+    data: TaskCreateRequest,
     use_case: FromDishka[CreateTaskInteractor],
+    idp: FromDishka[IdentityProvider],
     access_token: AccessToken,
 ) -> TaskResponse:
     user_id = idp.validate_access_token(token=access_token)
@@ -103,6 +109,41 @@ async def task_create(
     )
     response = TaskResponse.from_domain_model(data=task)
     return response
+
+
+@router.patch("/task/{task_id}", response_model=TaskResponse)
+@inject
+async def task_update(
+    task_id: str,
+    data: TaskUpdateRequest,
+    use_case: FromDishka[UpdateTaskInteractor],
+    idp: FromDishka[IdentityProvider],
+    access_token: AccessToken,
+) -> TaskResponse:
+    idp.validate_access_token(token=access_token)
+    task = await use_case(
+        task_data=TaskUpdateData(
+            task_id=task_id,
+            name=data.name,
+            description=data.description,
+            due_ts=data.due_ts,
+            is_complete=data.is_complete,
+        )
+    )
+    response = TaskResponse.from_domain_model(data=task)
+    return response
+
+
+@router.delete("/task/{task_id}", status_code=200)
+@inject
+async def task_delete(
+    task_id: str,
+    use_case: FromDishka[DeleteTaskInteractor],
+    idp: FromDishka[IdentityProvider],
+    access_token: AccessToken,
+) -> None:
+    idp.validate_access_token(token=access_token)
+    await use_case(task_id=task_id)
 
 
 # ratm1r

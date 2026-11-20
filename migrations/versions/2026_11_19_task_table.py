@@ -27,11 +27,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
-        sa.Column(
-            "status",
-            sa.Enum("TO DO", "DONE", name="task_status", native_enum=False, create_constraint=True),
-            nullable=False,
-        ),
+        sa.Column("is_complete", sa.Boolean(), nullable=False),
         sa.Column("created_ts", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_ts", sa.DateTime(timezone=True), nullable=False),
         sa.Column("due_ts", sa.DateTime(timezone=True), nullable=False),

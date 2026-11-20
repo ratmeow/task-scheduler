@@ -2,7 +2,6 @@ import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
 
 from .exceptions import DomainError
 
@@ -37,16 +36,11 @@ class User:
         return bool(re.fullmatch(pattern, email))
 
 
-class StatusEnum(Enum):
-    TO_DO = "TO DO"
-    DONE = "DONE"
-
-
 @dataclass
 class Task:
     name: str
     description: str | None
-    status: StatusEnum
+    is_complete: bool
     created_ts: datetime
     updated_ts: datetime
     due_ts: datetime
