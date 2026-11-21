@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from task_scheduler.application.dto import TaskListFilter, TaskListNavigation
 from task_scheduler.application.exceptions import AlreadyExistsError, ApplicationError
 from task_scheduler.domain.entities import Task, User
 
@@ -45,8 +46,21 @@ class PgTaskGateway:
         task = await self.db_session.get(Task, task_id)
         return task
 
-    async def list_by(self) -> list[Task]:
-        pass
+    async def list_by(self, filters: TaskListFilter, navigation: TaskListNavigation) -> list[Task]:
+        query = select(Task)
+        if filters.user_id:
+            query = query.where(Task.user_id == filters.user_id)
+        if filters.name:
+            query = query.where(Task.name.ilike(f"%{filters.name}%"))
+        if filters.is_complete:
+            query = query.where(Task.is_complete == filters.is_complete)
+        query = (
+            query.limit(navigation.limit)
+            .offset(navigation.offset)
+            .order_by(navigation.sort_column.desc() if navigation.sort_desc else navigation.sort_column.asc())
+        )
+        result = await self.db_session.execute(query)
+        return result.scalars().all()
 
     async def save(self, task: Task) -> None:
         self.db_session.add(task)

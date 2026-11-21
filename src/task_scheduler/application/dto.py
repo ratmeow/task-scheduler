@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from task_scheduler.domain.entities import Task
+
 
 @dataclass(frozen=True)
 class UserRegisterData:
@@ -34,3 +36,30 @@ class TaskUpdateData:
     @property
     def is_data_to_update(self) -> bool:
         return any(value is not None for value in (self.name, self.description, self.due_ts, self.is_complete))
+
+
+@dataclass(frozen=True)
+class TaskListNavigation:
+    sort_by: str | None = "updated_ts"
+    sort_desc: bool | None = False
+    limit: int | None = 10
+    offset: int | None = 0
+
+    @property
+    def sort_column(self):
+        return {
+            "name": Task.name,
+            "is_complete": Task.is_complete,
+            "created_ts": Task.created_ts,
+            "updated_ts": Task.updated_ts,
+            "due_ts": Task.due_ts,
+        }[self.sort_by]
+
+
+@dataclass(frozen=True)
+class TaskListFilter:
+    user_id: str | None
+    name: str | None
+    # created_ts: datetime | None
+    # due_ts: datetime | None
+    is_complete: bool | None

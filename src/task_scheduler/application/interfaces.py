@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from task_scheduler.application.dto import TaskListFilter, TaskListNavigation
 from task_scheduler.domain.entities import Task, User
 
 
@@ -34,7 +35,7 @@ class TaskGateway(Protocol):
     async def get_by_id(self, task_id: str) -> Task | None:
         pass
 
-    async def list_by(self) -> list[Task]:
+    async def list_by(self, filters: TaskListFilter, navigation: TaskListNavigation) -> list[Task]:
         pass
 
     async def save(self, task: Task) -> None:

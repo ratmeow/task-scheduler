@@ -1,13 +1,21 @@
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, Cookie, Depends, Form, Response
+from fastapi import APIRouter, Cookie, Depends, Form, Query, Response
 from starlette.responses import JSONResponse
 
-from task_scheduler.application.dto import TaskCreateData, TaskUpdateData, UserLoginData, UserRegisterData
+from task_scheduler.application.dto import (
+    TaskCreateData,
+    TaskListFilter,
+    TaskListNavigation,
+    TaskUpdateData,
+    UserLoginData,
+    UserRegisterData,
+)
 from task_scheduler.application.interactors import (
     CreateTaskInteractor,
     DeleteTaskInteractor,
+    ListTaskInteractor,
     LoginUserInteractor,
     RegisterUserInteractor,
     UpdateTaskInteractor,
@@ -16,7 +24,14 @@ from task_scheduler.infrastructure.idp.provider import IdentityProvider
 
 from .cookie_manager import TokenCookieManager
 from .exceptions import UnauthorizedError
-from .schemas import TaskCreateRequest, TaskResponse, TaskUpdateRequest, UserLoginRequest, UserRegisterRequest
+from .schemas import (
+    TaskCreateRequest,
+    TaskFiltersRequest,
+    TaskResponse,
+    TaskUpdateRequest,
+    UserLoginRequest,
+    UserRegisterRequest,
+)
 
 router = APIRouter(prefix="/api")
 
@@ -144,6 +159,25 @@ async def task_delete(
 ) -> None:
     idp.validate_access_token(token=access_token)
     await use_case(task_id=task_id)
+
+
+@router.get("/tasks")
+@inject
+async def tasks_get(
+    use_case: FromDishka[ListTaskInteractor],
+    idp: FromDishka[IdentityProvider],
+    access_token: AccessToken,
+    filters: Annotated[TaskFiltersRequest, Query()],
+) -> list[TaskResponse]:
+    user_id = idp.validate_access_token(token=access_token)
+    tasks = await use_case(
+        filters=TaskListFilter(user_id=user_id, name=filters.name, is_complete=filters.is_complete),
+        navigation=TaskListNavigation(
+            sort_by=filters.sort_by, sort_desc=filters.sort_desc, limit=filters.limit, offset=filters.offset
+        ),
+    )
+    response = [TaskResponse.from_domain_model(data=task) for task in tasks]
+    return response
 
 
 # ratm1r

@@ -8,6 +8,7 @@ from sqlalchemy.orm import registry
 from task_scheduler.application.interactors import (
     CreateTaskInteractor,
     DeleteTaskInteractor,
+    ListTaskInteractor,
     LoginUserInteractor,
     RegisterUserInteractor,
     UpdateTaskInteractor,
@@ -79,3 +80,4 @@ class AppProvider(Provider):
     create_task = provide(CreateTaskInteractor, scope=Scope.REQUEST)
     update_task = provide(UpdateTaskInteractor, scope=Scope.REQUEST)
     delete_task = provide(DeleteTaskInteractor, scope=Scope.REQUEST)
+    list_task = provide(ListTaskInteractor, scope=Scope.REQUEST)

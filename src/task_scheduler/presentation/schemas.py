@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -50,3 +51,12 @@ class TaskResponse(BaseModel):
             is_complete=data.is_complete,
         )
         return result
+
+
+class TaskFiltersRequest(BaseModel):
+    limit: int | None = 10
+    offset: int | None = 0
+    is_complete: bool | None = None
+    name: str | None = None
+    sort_desc: bool = True
+    sort_by: Literal["updated_ts", "created_ts", "name", "due_ts"] = "updated_ts"

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from task_scheduler.domain.entities import Task, User
 
-from .dto import TaskCreateData, TaskUpdateData, UserLoginData, UserRegisterData
+from .dto import TaskCreateData, TaskListFilter, TaskListNavigation, TaskUpdateData, UserLoginData, UserRegisterData
 from .exceptions import NotFoundError, PasswordRequirementError, UserNotFoundError, WrongPasswordError
 from .interfaces import DBSession, Hasher, TaskGateway, UserGateway
 
@@ -103,3 +103,12 @@ class DeleteTaskInteractor:
             raise NotFoundError(spec="Task")
         await self.task_gateway.delete(task=task)
         await self.db_session.commit()
+
+
+class ListTaskInteractor:
+    def __init__(self, task_gateway: TaskGateway, db_session: DBSession):
+        self.task_gateway = task_gateway
+        self.db_session = db_session
+
+    async def __call__(self, filters: TaskListFilter, navigation: TaskListNavigation) -> list[Task]:
+        return await self.task_gateway.list_by(filters=filters, navigation=navigation)
