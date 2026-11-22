@@ -4,6 +4,21 @@ export class ApiError extends Error {
 
 export class SessionChangedError extends Error {}
 
+export type Task = {
+  task_id: string
+  name: string
+  description: string | null
+  is_complete: boolean
+  due_ts: string
+}
+
+type TaskFields = Pick<Task, 'name' | 'description' | 'due_ts'>
+export type TaskChanges = Partial<TaskFields & Pick<Task, 'is_complete'>>
+
+function json(method: string, body: TaskChanges): RequestInit {
+  return { method, body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }
+}
+
 async function request(path: string, options: RequestInit = {}): Promise<unknown> {
   let response: Response
   try {
@@ -41,38 +56,58 @@ export class SessionClient {
     if (generation !== this.generation) throw new SessionChangedError()
   }
 
-  async main(): Promise<string> {
+  private async authenticated(path: string, options?: RequestInit): Promise<unknown> {
     const generation = this.generation
     const revision = this.refreshRevision
-    let result: unknown
     try {
-      result = await request('/main')
+      if (this.logoutFlight) throw new SessionChangedError()
+      const result = await request(path, options).catch(async (error: unknown) => {
+        this.current(generation)
+        if (!(error instanceof ApiError) || error.status !== 401) throw error
+        if (revision === this.refreshRevision) await this.refresh(generation)
+        this.current(generation)
+        return request(path, options)
+      })
+      this.current(generation)
+      return result
     } catch (error) {
       this.current(generation)
-      if (!(error instanceof ApiError) || error.status !== 401) throw error
-      if (revision === this.refreshRevision) {
-        if (this.refreshFlight?.generation !== generation) {
-          const flight = {
-            generation,
-            promise: request('/auth/refresh', { method: 'POST' }).then(() => {
-              this.current(generation)
-              this.refreshRevision += 1
-            }),
-          }
-          this.refreshFlight = flight
-          void flight.promise.finally(() => {
-            if (this.refreshFlight === flight) this.refreshFlight = undefined
-          }).catch(() => {})
-        }
-        await this.refreshFlight.promise
-      }
-      this.current(generation)
-      result = await request('/main')
+      throw error
     }
-    this.current(generation)
-    if (result === undefined || result === null) return ''
-    if (typeof result !== 'string') throw new ApiError('The server returned an unexpected response. Please try again.')
+  }
+
+  private refresh(generation: number) {
+    if (this.refreshFlight?.generation === generation) return this.refreshFlight.promise
+    const flight = {
+      generation,
+      promise: request('/auth/refresh', { method: 'POST' }).then(() => {
+        this.current(generation)
+        this.refreshRevision += 1
+      }),
+    }
+    this.refreshFlight = flight
+    void flight.promise.finally(() => {
+      if (this.refreshFlight === flight) this.refreshFlight = undefined
+    }).catch(() => {})
+    return flight.promise
+  }
+
+  async tasks(query: URLSearchParams): Promise<Task[]> {
+    const result = await this.authenticated(`/tasks?${query}`)
+    if (!Array.isArray(result)) throw new ApiError('The server returned an unexpected response. Please try again.')
     return result
+  }
+
+  createTask(fields: TaskFields) {
+    return this.authenticated('/task', json('POST', fields))
+  }
+
+  updateTask(id: string, changes: TaskChanges) {
+    return this.authenticated(`/task/${encodeURIComponent(id)}`, json('PATCH', changes))
+  }
+
+  deleteTask(id: string) {
+    return this.authenticated(`/task/${encodeURIComponent(id)}`, { method: 'DELETE' })
   }
 
   async login(login: string, password: string) {
@@ -87,11 +122,20 @@ export class SessionClient {
   }
 
   logout() {
+    if (this.logoutFlight) return this.logoutFlight
     this.invalidate()
-    const flight = request('/auth/sign-out', { method: 'POST' })
+    const flight = (async () => {
+      await this.refreshFlight?.promise.catch(() => {})
+      return request('/auth/sign-out', { method: 'POST' })
+    })()
     this.logoutFlight = flight
+    void flight.finally(() => { this.logoutFlight = undefined }).catch(() => {})
     return flight
   }
 }
 
 export const api = new SessionClient()
+
+export function message(error: unknown) {
+  return error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+}

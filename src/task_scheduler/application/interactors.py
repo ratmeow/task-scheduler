@@ -82,7 +82,8 @@ class UpdateTaskInteractor:
             raise NotFoundError(spec="Task")
         if task_data.is_data_to_update:
             task.name = task_data.name or task.name
-            task.description = task_data.description or task.description
+            if task_data.description is not None:
+                task.description = task_data.description or None
             task.due_ts = task_data.due_ts or task.due_ts
             if task_data.is_complete is not None:
                 task.is_complete = task_data.is_complete

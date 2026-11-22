@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { api, ApiError, SessionChangedError } from './api'
+import { api, message, SessionChangedError } from './api'
+import { TaskWorkspace } from './TaskWorkspace'
 import { registrationErrors } from './validation'
-
-function message(error: unknown) {
-  return error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-}
 
 function RouteFocus() {
   const { pathname } = useLocation()
@@ -126,83 +123,18 @@ function AuthPage({ register = false }: { register?: boolean }) {
   </main>
 }
 
-function MainPage() {
-  const navigate = useNavigate()
-  const [content, setContent] = useState<string | null>(null)
-  const [pending, setPending] = useState(true)
-  const [error, setError] = useState('')
-  const [loggingOut, setLoggingOut] = useState(false)
-  const sequence = useRef(0)
-
-  function load() {
-    const current = ++sequence.current
-    return api.main().then(result => {
-      if (current === sequence.current) setContent(result)
-    }).catch((error: unknown) => {
-      if (current !== sequence.current || error instanceof SessionChangedError) return
-      if (error instanceof ApiError && error.status === 401) {
-        navigate('/login', { replace: true, state: { error: 'Please log in to continue.' } })
-      } else setError(message(error))
-    }).finally(() => {
-      if (current === sequence.current) setPending(false)
-    })
-  }
-
-  function reload() {
-    setPending(true)
-    setError('')
-    void load()
-  }
-
-  useEffect(() => {
-    void load()
-    return () => { sequence.current += 1 }
-    // Only restore on mount; reload is an explicit user action.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function logout() {
-    sequence.current += 1
-    setContent(null)
-    setLoggingOut(true)
-    let error: string | undefined
-    try { await api.logout() } catch (cause) {
-      error = `Sign-out could not be confirmed. ${message(cause)} Retry sign-out to clear your server session.`
-    }
-    navigate('/login', { replace: true, state: error ? { error, logoutFailed: true } : { success: 'You have been logged out.' } })
-  }
-
-  return <main className="workspace" id="content">
-    <div className="workspace-heading">
-      <div><p className="eyebrow">YOUR WORKSPACE</p><h1 tabIndex={-1}>A fresh start.</h1></div>
-      <button onClick={() => void logout()} disabled={loggingOut}>{loggingOut ? 'Logging out…' : 'Log out'}</button>
-    </div>
-    <section className="response-panel" aria-labelledby="response-title" aria-busy={pending || loggingOut}>
-      <div className="panel-heading"><h2 id="response-title">Welcome to Task Scheduler</h2>
-        <button onClick={reload} disabled={pending || loggingOut}>{pending ? 'Loading…' : 'Reload'}</button>
-      </div>
-      {loggingOut ? <p role="status" className="muted">Closing your session…</p> : <>
-        {pending && <p role="status" className="muted">{content === null ? 'Checking your session…' : 'Updating your workspace…'}</p>}
-        {error && <div className="notice" role="alert"><p>{error}</p><button onClick={reload}>Try again</button></div>}
-        {content !== null && <p className="server-message">{content || 'The server returned an empty response. Use Reload to check again.'}</p>}
-      </>}
-    </section>
-  </main>
-}
-
 export default function App() {
   return <BrowserRouter>
     <a className="skip-link" href="#content">Skip to content</a>
     <header className="site-header"><Link className="brand" to="/">Task Scheduler<span className="brand-dot" aria-hidden="true" /></Link></header>
     <RouteFocus />
     <Routes>
-      <Route path="/" element={<MainPage />} />
+      <Route path="/" element={<TaskWorkspace />} />
       <Route path="/login" element={<AuthPage key="login" />} />
       <Route path="/register" element={<AuthPage key="register" register />} />
       <Route path="/index.html" element={<Navigate to="/" replace />} />
       <Route path="*" element={<main className="auth-page" id="content"><h1 tabIndex={-1}>Page not found</h1><p className="muted">This page doesn’t exist.</p><Link to="/">Go to your workspace</Link></main>} />
     </Routes>
-    <footer>Make room for what matters.</footer>
   </BrowserRouter>
 }
 

@@ -52,7 +52,7 @@ class PgTaskGateway:
             query = query.where(Task.user_id == filters.user_id)
         if filters.name:
             query = query.where(Task.name.ilike(f"%{filters.name}%"))
-        if filters.is_complete:
+        if filters.is_complete is not None:
             query = query.where(Task.is_complete == filters.is_complete)
         query = (
             query.limit(navigation.limit)
