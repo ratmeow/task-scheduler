@@ -7,6 +7,7 @@ import type { TaskDialogMode } from './TaskDialog'
 
 const pageSizes = [20, 40, 60] as const
 const filters = ['All', 'Open', 'Completed'] as const
+const viewLabels = { All: 'All tasks', Open: 'Open', Completed: 'Completed' }
 const sorts = {
   updated_ts: { label: 'Recently updated', descending: true },
   due_ts: { label: 'Due soonest', descending: false },
@@ -54,6 +55,7 @@ export function TaskWorkspace() {
   const [actionError, setActionError] = useState('')
   const [now, setNow] = useState(Date.now)
   const active = useRef(false)
+  const searchInput = useRef<HTMLInputElement>(null)
   const current = result?.query === query ? result : undefined
   const tasks = current && 'tasks' in current ? current.tasks : undefined
   const visibleTasks = tasks?.slice(0, query.pageSize)
@@ -76,6 +78,18 @@ export function TaskWorkspace() {
     const timer = window.setTimeout(() => setSuccess(''), 5000)
     return () => window.clearTimeout(timer)
   }, [success])
+
+  useEffect(() => {
+    if (dialog || loggingOut) return
+    function focusSearch(event: KeyboardEvent) {
+      if (event.key.toLowerCase() !== 'k' || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return
+      event.preventDefault()
+      searchInput.current?.focus()
+      searchInput.current?.select()
+    }
+    window.addEventListener('keydown', focusSearch)
+    return () => window.removeEventListener('keydown', focusSearch)
+  }, [dialog, loggingOut])
 
   useEffect(() => {
     if (loggingOut) return
@@ -166,78 +180,109 @@ export function TaskWorkspace() {
     navigate('/login', { replace: true, state: error ? { error, logoutFailed: true } : { success: 'You have been logged out.' } })
   }
 
-  return <main className="workspace" id="content">
-    {!loggingOut && <div className="task-feedback">
-      <div role="status">{success && <p className="notice success">{success}</p>}</div>
-      {actionError && <p className="notice" role="alert">{actionError}</p>}
-    </div>}
-    <div className="workspace-heading">
-      <h1 tabIndex={-1}>Tasks</h1>
-      <div className="workspace-actions">
-        <button className="quiet" disabled={loggingOut} onClick={() => void logout()}>
-          {loggingOut ? 'Logging out…' : 'Log out'}
+  return <div className="workspace-shell">
+    <aside className="workspace-sidebar">
+      <div className="brand"><span className="brand-mark" aria-hidden="true" />Task Scheduler</div>
+      <nav className="task-views" aria-label="Task views">
+        <p className="sidebar-label" aria-hidden="true">Views</p>
+        {filters.map(filter => <button key={filter} aria-pressed={query.filter === filter} disabled={loggingOut}
+          onClick={() => { if (query.filter !== filter) changeQuery({ filter }) }}>
+          <span className={`icon view-icon view-${filter.toLowerCase()}`} aria-hidden="true" />
+          {viewLabels[filter]}
+        </button>)}
+      </nav>
+      <div className="sidebar-footer">
+        <button className="quiet logout" disabled={loggingOut} onClick={() => void logout()}>
+          <span className="icon icon-logout" aria-hidden="true" />
+          <span>{loggingOut ? 'Logging out…' : 'Log out'}</span>
         </button>
+      </div>
+    </aside>
+    <main className="workspace" id="content">
+      <header className="workspace-heading">
+        <h1 tabIndex={-1}>{viewLabels[query.filter]}</h1>
         <button className="primary" disabled={!result || loggingOut || pending} onClick={() => setDialog({ kind: 'create' })}>
-          <span aria-hidden="true">+</span> New task
+          <span className="icon icon-plus" aria-hidden="true" />New task
         </button>
-      </div>
-    </div>
-    {!loggingOut && <div className="task-toolbar">
-      <input type="search" aria-label="Search tasks by name" placeholder="Search tasks"
-        value={query.search} onChange={event => changeQuery({ search: event.target.value })} />
-      <div className="task-filters" role="group" aria-label="Task status">
-        {filters.map(filter => <button key={filter} aria-pressed={query.filter === filter}
-          onClick={() => { if (query.filter !== filter) changeQuery({ filter }) }}>{filter}</button>)}
-      </div>
-      <label className="task-sort">
-        <span>Sort by</span>
-        <select value={query.sort} onChange={event => changeQuery({ sort: event.target.value as Query['sort'] })}>
-          {Object.entries(sorts).map(([value, { label }]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-      </label>
-    </div>}
-    <section className="task-panel" aria-label="Task list">
-      {loggingOut ? <p className="list-state muted" role="status">Closing your session…</p> : <>
-        {!current && <p className="list-state muted" role="status">Loading tasks…</p>}
-        {listError && <div className="list-state">
-          <p role="alert">{listError}</p>
-          <button onClick={() => setQuery(value => ({ ...value }))}>Try again</button>
-        </div>}
-        {taskCount === 0 && <div className="list-state" role="status">
-          <h2>{query.search.trim() ? 'No matching tasks' : query.filter === 'All' ? 'No tasks yet' : `No ${query.filter.toLowerCase()} tasks`}</h2>
-          {query.search.trim() && <p className="muted">Try a different name.</p>}
-          {!query.search.trim() && query.filter === 'All' && <p className="muted">Select New task to get started.</p>}
-        </div>}
-        {!!visibleTasks?.length && <ul className="task-list">
-          {visibleTasks.map(task => {
-            const due = new Date(task.due_ts)
-            const checked = pendingCompletion?.task_id === task.task_id ? pendingCompletion.is_complete : task.is_complete
-            const overdue = !checked && due.getTime() < now
-            return <li key={task.task_id} className={overdue ? 'task-row task-overdue' : 'task-row'}>
-              <label className="task-checkbox" title={checked ? 'Reopen task' : 'Complete task'}>
-                <input type="checkbox" aria-label={`Mark ${task.name} ${checked ? 'open' : 'complete'}`}
-                  checked={checked} aria-disabled={pending}
-                  onChange={() => void toggleCompletion(task)} />
-              </label>
-              <div className="task-details">
-                <h2>{task.name}</h2>
-                {task.description && <p className="task-description">{task.description}</p>}
-                <p className="task-due">
-                  {overdue ? 'Overdue' : 'Due'} <time dateTime={task.due_ts}>{dueDate.format(due)}</time>
+      </header>
+      {!loggingOut && <div className="task-toolbar">
+        <div className="task-search">
+          <span className="icon icon-search" aria-hidden="true" />
+          <input ref={searchInput} type="search" aria-label="Search tasks by name" placeholder="Search tasks"
+            aria-keyshortcuts="Control+K Meta+K"
+            value={query.search} onChange={event => changeQuery({ search: event.target.value })} />
+          {!query.search && <kbd aria-hidden="true">Ctrl K</kbd>}
+        </div>
+        <label className="select-control">
+          <span>Sort by</span>
+          <select value={query.sort} onChange={event => changeQuery({ sort: event.target.value as Query['sort'] })}>
+            {Object.entries(sorts).map(([value, { label }]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+      </div>}
+      {!loggingOut && <div className="task-feedback">
+        <div role="status">{success && <p className="notice success">{success}</p>}</div>
+        {actionError && <p className="notice" role="alert">{actionError}</p>}
+      </div>}
+      <section className="task-panel" aria-label="Task list">
+        {loggingOut ? <p className="list-state muted" role="status">Closing your session…</p> : <>
+          <div className="task-columns task-grid" aria-hidden="true">
+            <span>Task</span><span>Due date</span><span>Status</span>
+          </div>
+          {!current && <p className="list-state muted" role="status">Loading tasks…</p>}
+          {listError && <div className="list-state">
+            <h2>Couldn’t load tasks</h2>
+            <p className="muted" role="alert">{listError}</p>
+            <button onClick={() => setQuery(value => ({ ...value }))}>Try again</button>
+          </div>}
+          {taskCount === 0 && <div className="list-state" role="status">
+            <span className="icon view-icon view-all" aria-hidden="true" />
+            <h2>{query.search.trim() ? 'No matching tasks' : query.filter === 'All' ? 'No tasks yet' : `No ${query.filter.toLowerCase()} tasks`}</h2>
+            {query.search.trim() && <p className="muted">Try a different name.</p>}
+            {!query.search.trim() && query.filter === 'All' && <p className="muted">Create a task to start planning.</p>}
+          </div>}
+          {!!visibleTasks?.length && <ul className="task-list">
+            {visibleTasks.map(task => {
+              const due = new Date(task.due_ts)
+              const checked = pendingCompletion?.task_id === task.task_id ? pendingCompletion.is_complete : task.is_complete
+              const overdue = !checked && due.getTime() < now
+              return <li key={task.task_id} className="task-row task-grid">
+                <div className="task-details">
+                  <label className="task-checkbox" title={checked ? 'Reopen task' : 'Complete task'}>
+                    <input type="checkbox" aria-label={`Mark ${task.name} ${checked ? 'open' : 'complete'}`}
+                      checked={checked} aria-disabled={pending}
+                      onChange={() => void toggleCompletion(task)} />
+                  </label>
+                  <div className="task-summary">
+                    <button className="task-name" aria-label={`Edit ${task.name}`} title={task.name} disabled={pending}
+                      onClick={() => setDialog({ kind: 'edit', task })}>{task.name}</button>
+                    {task.description && <p className="task-description" title={task.description}>{task.description}</p>}
+                  </div>
+                </div>
+                <p className={overdue ? 'task-due overdue' : 'task-due'}>
+                  <span className="mobile-due">{overdue ? 'Overdue' : 'Due'}</span>
+                  <time dateTime={task.due_ts}>{dueDate.format(due)}</time>
+                  {overdue && <span className="overdue-label">Overdue</span>}
                 </p>
-              </div>
-              <div className="task-actions">
-                <button className="quiet" aria-label={`Edit ${task.name}`} disabled={pending}
-                  onClick={() => setDialog({ kind: 'edit', task })}>Edit</button>
-                <button className="quiet" aria-label={`Delete ${task.name}`} disabled={pending}
-                  onClick={() => setDialog({ kind: 'delete', task })}>Delete</button>
-              </div>
-            </li>
-          })}
-        </ul>}
-        <div className="task-pagination">
-          <label className="task-page-size">
-            <span>Tasks per page</span>
+                <p className={checked ? 'task-status complete' : 'task-status'}>
+                  <span className="status-dot" aria-hidden="true" />{checked ? 'Completed' : 'Open'}
+                </p>
+                <button className="quiet task-delete" aria-label={`Delete ${task.name}`} title="Delete task" disabled={pending}
+                  onClick={() => setDialog({ kind: 'delete', task })}>
+                  <span className="icon icon-trash" aria-hidden="true" />
+                </button>
+              </li>
+            })}
+          </ul>}
+        </>}
+      </section>
+      {!loggingOut && <footer className="task-pagination">
+        <div className="page-summary">
+          <p className="muted" role="status">
+            {taskCount !== undefined && `${taskCount} ${taskCount === 1 ? 'task' : 'tasks'} on this page`}
+          </p>
+          <label className="select-control page-size">
+            <span>Per page</span>
             <select value={query.pageSize} onChange={event => {
               const pageSize = pageSizes.find(size => String(size) === event.target.value)
               if (pageSize !== undefined) changeQuery({ pageSize })
@@ -245,19 +290,16 @@ export function TaskWorkspace() {
               {pageSizes.map(size => <option key={size} value={size}>{size}</option>)}
             </select>
           </label>
-          <p className="muted task-page-count" role="status">
-            {taskCount !== undefined && `${taskCount} ${taskCount === 1 ? 'task' : 'tasks'} on this page`}
-          </p>
-          <nav className="task-page-controls" aria-label="Task pages">
-            <button disabled={query.page === 1 || !current || pending}
-              onClick={() => changeQuery({ page: query.page - 1 })}>Previous</button>
-            <span aria-live="polite">Page {query.page}</span>
-            <button disabled={!hasNextPage || pending}
-              onClick={() => changeQuery({ page: query.page + 1 })}>Next</button>
-          </nav>
         </div>
-      </>}
-    </section>
-    {dialog && <TaskDialog mode={dialog} pending={pending} close={() => setDialog(undefined)} mutate={mutate} />}
-  </main>
+        <nav className="task-page-controls" aria-label="Task pages">
+          <button aria-label="Previous page" title="Previous page" disabled={query.page === 1 || !current || pending}
+            onClick={() => changeQuery({ page: query.page - 1 })}><span className="chevron previous" aria-hidden="true" /></button>
+          <span aria-live="polite">Page {query.page}</span>
+          <button aria-label="Next page" title="Next page" disabled={!hasNextPage || pending}
+            onClick={() => changeQuery({ page: query.page + 1 })}><span className="chevron" aria-hidden="true" /></button>
+        </nav>
+      </footer>}
+      {dialog && <TaskDialog mode={dialog} pending={pending} close={() => setDialog(undefined)} mutate={mutate} />}
+    </main>
+  </div>
 }

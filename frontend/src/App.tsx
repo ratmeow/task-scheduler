@@ -81,9 +81,8 @@ function AuthPage({ register = false }: { register?: boolean }) {
 
   return <main className="auth-page" id="content">
     <div className="auth-heading">
-      <p className="eyebrow">YOUR WORK, IN ONE PLACE</p>
+      <Link className="brand" to="/"><span className="brand-mark" aria-hidden="true" />Task Scheduler</Link>
       <h1 tabIndex={-1}>{register ? 'Create your account' : 'Welcome back'}</h1>
-      <p className="muted">{register ? 'A little structure for what comes next.' : 'Log in to your Task Scheduler workspace.'}</p>
     </div>
     {notice?.success && <p className="notice success" role="status">{notice.success}</p>}
     {notice?.error && !logoutNotice && <p className="notice" role="alert">{notice.error}</p>}
@@ -126,7 +125,6 @@ function AuthPage({ register = false }: { register?: boolean }) {
 export default function App() {
   return <BrowserRouter>
     <a className="skip-link" href="#content">Skip to content</a>
-    <header className="site-header"><Link className="brand" to="/">Task Scheduler<span className="brand-dot" aria-hidden="true" /></Link></header>
     <RouteFocus />
     <Routes>
       <Route path="/" element={<TaskWorkspace />} />
