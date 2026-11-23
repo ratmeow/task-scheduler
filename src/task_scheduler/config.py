@@ -29,6 +29,14 @@ class RedisConfig(BaseModel):
     port: int = Field(validation_alias="REDIS_PORT")
 
 
+class EmailClientConfig(BaseModel):
+    url: str = Field(validation_alias="MAILJET_URL")
+    api_key: str = Field(validation_alias="MAILJET_API_KEY")
+    secret_key: str = Field(validation_alias="MAILJET_SECRET_KEY")
+    sender: str = Field(validation_alias="MAILJET_SENDER")
+    sender_name: str = Field(validation_alias="MAILJET_SENDER_NAME")
+
+
 class Config(BaseModel):
     postgres: PostgresConfig = Field(default_factory=lambda: PostgresConfig(**environ))
     redis: RedisConfig = Field(default_factory=lambda: RedisConfig(**environ))
