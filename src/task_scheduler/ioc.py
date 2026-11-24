@@ -18,6 +18,8 @@ from task_scheduler.config import Config
 from task_scheduler.infrastructure.database.gateway import PgTaskGateway, PgUserGateway
 from task_scheduler.infrastructure.database.orm import create_mapper_registry
 from task_scheduler.infrastructure.database.session import pg_session_maker
+from task_scheduler.infrastructure.email.email_sender import MailjetEmailSender
+from task_scheduler.infrastructure.email.interfaces import Sender
 from task_scheduler.infrastructure.hasher import BcryptHasher
 from task_scheduler.infrastructure.idp.interfaces import TokenStorage
 from task_scheduler.infrastructure.idp.provider import IdentityProvider
@@ -74,6 +76,10 @@ class AppProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_task_gateway(self, session: AsyncSession) -> TaskGateway:
         return PgTaskGateway(db_session=session)
+
+    @provide(scope=Scope.APP)
+    def get_sender(self, config: Config) -> Sender:
+        return MailjetEmailSender(config=config.email)
 
     register_user = provide(RegisterUserInteractor, scope=Scope.REQUEST)
     login_user = provide(LoginUserInteractor, scope=Scope.REQUEST)

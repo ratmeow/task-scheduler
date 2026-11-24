@@ -20,6 +20,7 @@ from task_scheduler.application.interactors import (
     RegisterUserInteractor,
     UpdateTaskInteractor,
 )
+from task_scheduler.infrastructure.email.interfaces import Sender
 from task_scheduler.infrastructure.idp.provider import IdentityProvider
 
 from .cookie_manager import TokenCookieManager
@@ -49,8 +50,15 @@ AccessToken = Annotated[str, Depends(get_access_token)]
 
 @router.post("/auth/sign-up")
 @inject
-async def register_user(data: Annotated[UserRegisterRequest, Form()], use_case: FromDishka[RegisterUserInteractor]):
-    await use_case(register_data=UserRegisterData(email=data.email, login=data.login, password=data.password))
+async def register_user(
+    data: Annotated[UserRegisterRequest, Form()],
+    use_case: FromDishka[RegisterUserInteractor],
+    sender: FromDishka[Sender],
+):
+    user = await use_case(register_data=UserRegisterData(email=data.email, login=data.login, password=data.password))
+    await sender.send(
+        recipient=user.email, subject="Welcome to task scheduler!", text=f"Welcome to task scheduler dear {user.login}"
+    )
     return Response(status_code=200)
 
 

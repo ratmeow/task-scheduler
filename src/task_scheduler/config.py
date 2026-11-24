@@ -41,3 +41,4 @@ class Config(BaseModel):
     postgres: PostgresConfig = Field(default_factory=lambda: PostgresConfig(**environ))
     redis: RedisConfig = Field(default_factory=lambda: RedisConfig(**environ))
     auth: AuthConfig = Field(default_factory=lambda: AuthConfig(**environ))
+    email: EmailClientConfig = Field(default_factory=lambda: EmailClientConfig(**environ))

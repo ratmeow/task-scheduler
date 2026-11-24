@@ -15,7 +15,7 @@ class RegisterUserInteractor:
         self.hasher = hasher
         self.db_session = db_session
 
-    async def __call__(self, register_data: UserRegisterData) -> str:
+    async def __call__(self, register_data: UserRegisterData) -> User:
         if not self._is_strong_password(password=register_data.password):
             raise PasswordRequirementError()
 
@@ -27,7 +27,7 @@ class RegisterUserInteractor:
 
         await self.user_gateway.save(user=user)
         await self.db_session.commit()
-        return str(user.id)
+        return user
 
     @staticmethod
     def _is_strong_password(password: str) -> bool:
