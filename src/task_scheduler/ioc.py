@@ -1,5 +1,6 @@
-from typing import AsyncIterable
+from typing import AsyncIterable, Iterator
 
+from celery import Celery
 from dishka import AnyOf, Provider, Scope, from_context, provide
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -24,6 +25,8 @@ from task_scheduler.infrastructure.hasher import BcryptHasher
 from task_scheduler.infrastructure.idp.interfaces import TokenStorage
 from task_scheduler.infrastructure.idp.provider import IdentityProvider
 from task_scheduler.infrastructure.idp.redis_storage import RedisTokenStorage
+from task_scheduler.infrastructure.interfaces import EmailPublisher
+from task_scheduler.infrastructure.messaging.email_publisher import CeleryEmailPublisher
 from task_scheduler.presentation.cookie_manager import TokenCookieManager
 
 
@@ -80,6 +83,23 @@ class AppProvider(Provider):
     @provide(scope=Scope.APP)
     def get_sender(self, config: Config) -> Sender:
         return MailjetEmailSender(config=config.email)
+
+    @provide(scope=Scope.APP)
+    def get_celery(self, config: Config) -> Iterator[Celery]:
+        celery = Celery(
+            main="app",
+            broker=config.rabbitmq.amqp_url,
+            set_as_current=False,
+        )
+
+        try:
+            yield celery
+        finally:
+            celery.close()
+
+    @provide(scope=Scope.APP)
+    def email_publisher(self, celery: Celery) -> EmailPublisher:
+        return CeleryEmailPublisher(celery=celery)
 
     register_user = provide(RegisterUserInteractor, scope=Scope.REQUEST)
     login_user = provide(LoginUserInteractor, scope=Scope.REQUEST)

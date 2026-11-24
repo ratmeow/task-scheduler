@@ -29,6 +29,18 @@ class RedisConfig(BaseModel):
     port: int = Field(validation_alias="REDIS_PORT")
 
 
+class RabbitMQConfig(BaseModel):
+    host: str = Field(validation_alias="RABBITMQ_HOST")
+    port: int = Field(validation_alias="RABBITMQ_PORT")
+    user: str = Field(validation_alias="RABBITMQ_USER")
+    password: str = Field(validation_alias="RABBITMQ_PASSWORD")
+    vhost: str = Field(validation_alias="RABBITMQ_VHOST")
+
+    @property
+    def amqp_url(self) -> str:
+        return f"amqp://{self.user}:{self.password}@{self.host}:{self.port}/{self.vhost}"
+
+
 class EmailClientConfig(BaseModel):
     url: str = Field(validation_alias="MAILJET_URL")
     api_key: str = Field(validation_alias="MAILJET_API_KEY")
@@ -40,5 +52,6 @@ class EmailClientConfig(BaseModel):
 class Config(BaseModel):
     postgres: PostgresConfig = Field(default_factory=lambda: PostgresConfig(**environ))
     redis: RedisConfig = Field(default_factory=lambda: RedisConfig(**environ))
+    rabbitmq: RabbitMQConfig = Field(default_factory=lambda: RabbitMQConfig(**environ))
     auth: AuthConfig = Field(default_factory=lambda: AuthConfig(**environ))
     email: EmailClientConfig = Field(default_factory=lambda: EmailClientConfig(**environ))

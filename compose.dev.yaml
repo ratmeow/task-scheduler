@@ -29,6 +29,24 @@ services:
     volumes:
       - dev-redis-data:/data
 
+  dev-rabbitmq:
+    image: rabbitmq:4.2-alpine
+    hostname: dev-rabbitmq
+    ports:
+      - "127.0.0.1:${RABBITMQ_PORT}:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
+      RABBITMQ_DEFAULT_VHOST: "${RABBITMQ_VHOST}"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    volumes:
+      - dev-rabbitmq-data:/var/lib/rabbitmq
+
   dev-backend:
     build:
       context: .
@@ -43,11 +61,18 @@ services:
       POSTGRES_DB: "${POSTGRES_DB}"
       REDIS_HOST: dev-redis
       REDIS_PORT: 6379
+      RABBITMQ_HOST: dev-rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: "${RABBITMQ_USER}"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      RABBITMQ_VHOST: "${RABBITMQ_VHOST}"
       ACCESS_TOKEN_SECRET: "${ACCESS_TOKEN_SECRET}"
     depends_on:
       dev-postgres:
         condition: service_healthy
       dev-redis:
+        condition: service_healthy
+      dev-rabbitmq:
         condition: service_healthy
     volumes:
       - ./src:/app/src
@@ -64,3 +89,4 @@ services:
 volumes:
   dev-postgres-data:
   dev-redis-data:
+  dev-rabbitmq-data:
