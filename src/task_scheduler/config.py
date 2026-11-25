@@ -42,11 +42,9 @@ class RabbitMQConfig(BaseModel):
 
 
 class EmailClientConfig(BaseModel):
-    url: str = Field(validation_alias="MAILJET_URL")
-    api_key: str = Field(validation_alias="MAILJET_API_KEY")
-    secret_key: str = Field(validation_alias="MAILJET_SECRET_KEY")
-    sender: str = Field(validation_alias="MAILJET_SENDER")
-    sender_name: str = Field(validation_alias="MAILJET_SENDER_NAME")
+    url: str = Field(validation_alias="RESEND_URL")
+    api_key: str = Field(validation_alias="RESEND_API_KEY")
+    sender: str = Field(validation_alias="RESEND_SENDER")
 
 
 class Config(BaseModel):

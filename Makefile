@@ -1,4 +1,4 @@
-.PHONY: test-local test-docker infra-up infra-down start-app
+.PHONY: test-local test-docker infra-up infra-down start-app start-worker
 .PHONY: dev-infra-up dev-infra-down dev-infra-logs dev-run dev-local dev-docker
 .PHONY: prod-up prod-down
 .PHONY: test-infra-up test-infra-down
@@ -21,7 +21,7 @@ test-docker:
 	docker compose -f compose.test.yaml --env-file test.env run --build --rm test-backend pytest $(TEST_ARGS)
 
 dev-infra-up:
-	docker compose -f compose.dev.yaml --env-file dev.env up -d dev-postgres dev-redis
+	docker compose -f compose.dev.yaml --env-file dev.env up -d dev-postgres dev-redis dev-rabbitmq
 
 dev-down:
 	docker compose -f compose.dev.yaml --env-file dev.env down
@@ -34,3 +34,6 @@ dev-docker:
 
 start-app:
 	export $$(cat dev.env | xargs) && alembic upgrade head && uvicorn task_scheduler.main:create_app --host "0.0.0.0" --port 8080
+
+start-worker:
+	export $$(cat dev.env | xargs) && python -c 'from task_scheduler.main import create_worker; create_worker()'

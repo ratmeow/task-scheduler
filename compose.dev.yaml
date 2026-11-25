@@ -67,6 +67,9 @@ services:
       RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
       RABBITMQ_VHOST: "${RABBITMQ_VHOST}"
       ACCESS_TOKEN_SECRET: "${ACCESS_TOKEN_SECRET}"
+      RESEND_URL: "${RESEND_URL}"
+      RESEND_API_KEY: "${RESEND_API_KEY}"
+      RESEND_SENDER: "${RESEND_SENDER}"
     depends_on:
       dev-postgres:
         condition: service_healthy

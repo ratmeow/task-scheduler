@@ -1,5 +1,6 @@
 from typing import AsyncIterable, Iterator
 
+import httpx
 from celery import Celery
 from dishka import AnyOf, Provider, Scope, from_context, provide
 from redis.asyncio import Redis
@@ -19,14 +20,13 @@ from task_scheduler.config import Config
 from task_scheduler.infrastructure.database.gateway import PgTaskGateway, PgUserGateway
 from task_scheduler.infrastructure.database.orm import create_mapper_registry
 from task_scheduler.infrastructure.database.session import pg_session_maker
-from task_scheduler.infrastructure.email.email_sender import MailjetEmailSender
-from task_scheduler.infrastructure.email.interfaces import Sender
 from task_scheduler.infrastructure.hasher import BcryptHasher
 from task_scheduler.infrastructure.idp.interfaces import TokenStorage
 from task_scheduler.infrastructure.idp.provider import IdentityProvider
 from task_scheduler.infrastructure.idp.redis_storage import RedisTokenStorage
-from task_scheduler.infrastructure.interfaces import EmailPublisher
+from task_scheduler.infrastructure.interfaces import EmailPublisher, EmailSender
 from task_scheduler.infrastructure.messaging.email_publisher import CeleryEmailPublisher
+from task_scheduler.infrastructure.messaging.email_sender import ResendEmailSender
 from task_scheduler.presentation.cookie_manager import TokenCookieManager
 
 
@@ -81,10 +81,6 @@ class AppProvider(Provider):
         return PgTaskGateway(db_session=session)
 
     @provide(scope=Scope.APP)
-    def get_sender(self, config: Config) -> Sender:
-        return MailjetEmailSender(config=config.email)
-
-    @provide(scope=Scope.APP)
     def get_celery(self, config: Config) -> Iterator[Celery]:
         celery = Celery(
             main="app",
@@ -107,3 +103,18 @@ class AppProvider(Provider):
     update_task = provide(UpdateTaskInteractor, scope=Scope.REQUEST)
     delete_task = provide(DeleteTaskInteractor, scope=Scope.REQUEST)
     list_task = provide(ListTaskInteractor, scope=Scope.REQUEST)
+
+
+class WorkerProvider(Provider):
+    config = from_context(provides=Config, scope=Scope.APP)
+
+    @provide(scope=Scope.APP)
+    def http_client(self) -> Iterator[httpx.Client]:
+        with httpx.Client(
+            timeout=httpx.Timeout(10.0, connect=5.0),
+        ) as client:
+            yield client
+
+    @provide(scope=Scope.APP)
+    def get_email_sender(self, config: Config, http_client: httpx.Client) -> EmailSender:
+        return ResendEmailSender(config=config.email, client=http_client)
