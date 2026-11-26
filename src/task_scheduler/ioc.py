@@ -1,6 +1,7 @@
+import ssl
+from smtplib import SMTP_SSL
 from typing import AsyncIterable, Iterator
 
-import httpx
 from celery import Celery
 from dishka import AnyOf, Provider, Scope, from_context, provide
 from redis.asyncio import Redis
@@ -108,13 +109,17 @@ class AppProvider(Provider):
 class WorkerProvider(Provider):
     config = from_context(provides=Config, scope=Scope.APP)
 
-    @provide(scope=Scope.APP)
-    def http_client(self) -> Iterator[httpx.Client]:
-        with httpx.Client(
-            timeout=httpx.Timeout(10.0, connect=5.0),
+    @provide(scope=Scope.REQUEST)
+    def smtp_client(self, config: Config) -> Iterator[SMTP_SSL]:
+        with SMTP_SSL(
+            host=config.email.smtp_host,
+            port=config.email.smtp_port,
+            timeout=10.0,
+            context=ssl.create_default_context(),
         ) as client:
+            client.login("resend", config.email.api_key)
             yield client
 
-    @provide(scope=Scope.APP)
-    def get_email_sender(self, config: Config, http_client: httpx.Client) -> EmailSender:
-        return ResendEmailSender(config=config.email, client=http_client)
+    @provide(scope=Scope.REQUEST)
+    def get_email_sender(self, config: Config, smtp_client: SMTP_SSL) -> EmailSender:
+        return ResendEmailSender(config=config.email, client=smtp_client)

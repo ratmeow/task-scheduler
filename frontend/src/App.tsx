@@ -17,8 +17,8 @@ function RouteFocus() {
 function AuthPage({ register = false }: { register?: boolean }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const notice = location.state as { login?: string; success?: string; error?: string; logoutFailed?: boolean } | null
-  const [login, setLogin] = useState(notice?.login || '')
+  const notice = location.state as { success?: string; error?: string; logoutFailed?: boolean } | null
+  const [login, setLogin] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [pending, setPending] = useState(false)
@@ -68,10 +68,7 @@ function AuthPage({ register = false }: { register?: boolean }) {
       else await api.login(login, password)
       if (!active.current) return
       setPassword('')
-      navigate(register ? '/login' : '/', {
-        replace: true,
-        state: register ? { login, success: 'Account created. Log in to continue.' } : null,
-      })
+      navigate('/', { replace: true })
     } catch (error) {
       if (active.current && !(error instanceof SessionChangedError)) setError(message(error))
     } finally {

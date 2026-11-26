@@ -1,0 +1,17 @@
+FROM python:3.12-alpine
+
+WORKDIR /app
+
+RUN apk add --no-cache gcc musl-dev postgresql-dev
+
+RUN pip install --no-cache-dir poetry
+
+COPY pyproject.toml poetry.lock README.md ./
+
+RUN poetry config virtualenvs.create false \
+    && poetry install --without dev,test --no-interaction --no-root
+
+COPY src/ ./src/
+RUN poetry install --only-root
+
+CMD ["python", "-c", "from task_scheduler.main import create_worker; create_worker()"]

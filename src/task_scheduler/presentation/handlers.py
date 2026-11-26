@@ -54,10 +54,18 @@ async def register_user(
     data: Annotated[UserRegisterRequest, Form()],
     use_case: FromDishka[RegisterUserInteractor],
     email_publisher: FromDishka[EmailPublisher],
+    idp: FromDishka[IdentityProvider],
+    cookie_manager: FromDishka[TokenCookieManager],
 ):
     user = await use_case(register_data=UserRegisterData(email=data.email, login=data.login, password=data.password))
+
     await email_publisher.publish(email=user.email, text=f"Welcome to task scheduler dear {user.login}")
-    return Response(status_code=200)
+
+    access_token = idp.create_access_token(user_id=str(user.id))
+    refresh_token = await idp.create_refresh_token(user_id=str(user.id))
+    response = Response(status_code=200)
+    cookie_manager.set_tokens(response=response, access_token=access_token, refresh_token=refresh_token)
+    return response
 
 
 @router.post("/auth/sign-in")

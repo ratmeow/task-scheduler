@@ -42,7 +42,8 @@ class RabbitMQConfig(BaseModel):
 
 
 class EmailClientConfig(BaseModel):
-    url: str = Field(validation_alias="RESEND_URL")
+    smtp_host: str = Field(default="smtp.resend.com", validation_alias="RESEND_SMTP_HOST")
+    smtp_port: int = Field(default=465, validation_alias="RESEND_SMTP_PORT")
     api_key: str = Field(validation_alias="RESEND_API_KEY")
     sender: str = Field(validation_alias="RESEND_SENDER")
 

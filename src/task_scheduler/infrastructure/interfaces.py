@@ -7,5 +7,5 @@ class EmailPublisher(Protocol):
 
 
 class EmailSender(Protocol):
-    def send(self, email: str, text: str) -> str:
+    def send(self, email: str, text: str) -> None:
         pass

@@ -53,7 +53,7 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - ${APP_PORT:-8000}:8000
-    environment:
+    environment: &dev-python-environment
       POSTGRES_HOST: dev-postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: "${POSTGRES_USER}"
@@ -67,7 +67,8 @@ services:
       RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
       RABBITMQ_VHOST: "${RABBITMQ_VHOST}"
       ACCESS_TOKEN_SECRET: "${ACCESS_TOKEN_SECRET}"
-      RESEND_URL: "${RESEND_URL}"
+      RESEND_SMTP_HOST: "${RESEND_SMTP_HOST:-smtp.resend.com}"
+      RESEND_SMTP_PORT: "${RESEND_SMTP_PORT:-465}"
       RESEND_API_KEY: "${RESEND_API_KEY}"
       RESEND_SENDER: "${RESEND_SENDER}"
     depends_on:
@@ -75,6 +76,17 @@ services:
         condition: service_healthy
       dev-redis:
         condition: service_healthy
+      dev-rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+
+  dev-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment: *dev-python-environment
+    depends_on:
       dev-rabbitmq:
         condition: service_healthy
     volumes:
