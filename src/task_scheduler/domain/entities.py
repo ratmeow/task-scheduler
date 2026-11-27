@@ -2,6 +2,7 @@ import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Literal
 
 from .exceptions import DomainError
 
@@ -53,3 +54,34 @@ class Task:
     def validate(self):
         if len(self.name) < 3:
             raise DomainError("Task name must be at least 3 characters long")
+
+
+@dataclass(frozen=True)
+class TaskEventDetails:
+    name: str
+
+
+@dataclass(frozen=True)
+class TaskCreatedDetails(TaskEventDetails):
+    description: str | None
+
+
+@dataclass(frozen=True)
+class TaskUpdatedDetails(TaskEventDetails):
+    field: Literal["name", "description", "due_ts", "is_complete"]
+    value: str | bool | None
+
+
+@dataclass(frozen=True)
+class TaskDeletedDetails(TaskEventDetails):
+    pass
+
+
+@dataclass
+class TaskEvent:
+    task_id: uuid.UUID
+    user_id: uuid.UUID
+    action: Literal["created", "updated", "deleted"]
+    details: TaskEventDetails
+    event_ts: datetime
+    id: uuid.UUID = field(default_factory=uuid.uuid4)

@@ -149,10 +149,11 @@ async def task_update(
     idp: FromDishka[IdentityProvider],
     access_token: AccessToken,
 ) -> TaskResponse:
-    idp.validate_access_token(token=access_token)
+    user_id = idp.validate_access_token(token=access_token)
     task = await use_case(
         task_data=TaskUpdateData(
             task_id=task_id,
+            user_id=user_id,
             name=data.name,
             description=data.description,
             due_ts=data.due_ts,
@@ -171,8 +172,8 @@ async def task_delete(
     idp: FromDishka[IdentityProvider],
     access_token: AccessToken,
 ) -> None:
-    idp.validate_access_token(token=access_token)
-    await use_case(task_id=task_id)
+    user_id = idp.validate_access_token(token=access_token)
+    await use_case(task_id=task_id, user_id=user_id)
 
 
 @router.get("/tasks")

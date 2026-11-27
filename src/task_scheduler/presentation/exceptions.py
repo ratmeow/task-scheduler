@@ -9,8 +9,8 @@ from task_scheduler.application.exceptions import (
     UserNotFoundError,
     WrongPasswordError,
 )
-from task_scheduler.infrastructure.idp.exceptions import WrongTokenError, ExpiredTokenError
 from task_scheduler.domain.exceptions import DomainError
+from task_scheduler.infrastructure.idp.exceptions import ExpiredTokenError, WrongTokenError
 
 
 class UnauthorizedError(ApplicationError):

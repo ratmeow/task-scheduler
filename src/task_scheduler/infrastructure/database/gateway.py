@@ -1,10 +1,12 @@
-from sqlalchemy import select
+from dataclasses import asdict
+
+from sqlalchemy import insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from task_scheduler.application.dto import TaskListFilter, TaskListNavigation
 from task_scheduler.application.exceptions import AlreadyExistsError, ApplicationError
-from task_scheduler.domain.entities import Task, User
+from task_scheduler.domain.entities import Task, TaskEvent, User
 
 
 class PgUserGateway:
@@ -76,3 +78,20 @@ class PgTaskGateway:
         except IntegrityError as exc:
             print(exc)
             raise ApplicationError()
+
+
+class PgTaskEventGateway:
+    def __init__(self, db_session: AsyncSession):
+        self.db_session = db_session
+
+    async def save(self, event: TaskEvent) -> None:
+        await self.db_session.execute(
+            insert(TaskEvent).values(
+                id=event.id,
+                task_id=event.task_id,
+                user_id=event.user_id,
+                action=event.action,
+                details=asdict(event.details),
+                event_ts=event.event_ts,
+            )
+        )

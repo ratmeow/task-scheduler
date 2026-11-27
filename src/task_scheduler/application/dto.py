@@ -28,14 +28,11 @@ class TaskCreateData:
 @dataclass(frozen=True)
 class TaskUpdateData:
     task_id: str
+    user_id: str
     name: str | None
     description: str | None
     due_ts: datetime | None
     is_complete: bool | None = None
-
-    @property
-    def is_data_to_update(self) -> bool:
-        return any(value is not None for value in (self.name, self.description, self.due_ts, self.is_complete))
 
 
 @dataclass(frozen=True)

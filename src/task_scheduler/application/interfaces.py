@@ -1,7 +1,7 @@
 from typing import Protocol
 
 from task_scheduler.application.dto import TaskListFilter, TaskListNavigation
-from task_scheduler.domain.entities import Task, User
+from task_scheduler.domain.entities import Task, TaskEvent, User
 
 
 class Hasher(Protocol):
@@ -14,6 +14,9 @@ class Hasher(Protocol):
 
 class DBSession(Protocol):
     async def commit(self) -> None:
+        pass
+
+    async def rollback(self) -> None:
         pass
 
     async def flush(self) -> None:
@@ -42,4 +45,9 @@ class TaskGateway(Protocol):
         pass
 
     async def delete(self, task: Task) -> None:
+        pass
+
+
+class TaskEventGateway(Protocol):
+    async def save(self, event: TaskEvent) -> None:
         pass

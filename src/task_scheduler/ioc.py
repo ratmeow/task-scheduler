@@ -16,9 +16,9 @@ from task_scheduler.application.interactors import (
     RegisterUserInteractor,
     UpdateTaskInteractor,
 )
-from task_scheduler.application.interfaces import DBSession, Hasher, TaskGateway, UserGateway
+from task_scheduler.application.interfaces import DBSession, Hasher, TaskEventGateway, TaskGateway, UserGateway
 from task_scheduler.config import Config
-from task_scheduler.infrastructure.database.gateway import PgTaskGateway, PgUserGateway
+from task_scheduler.infrastructure.database.gateway import PgTaskEventGateway, PgTaskGateway, PgUserGateway
 from task_scheduler.infrastructure.database.orm import create_mapper_registry
 from task_scheduler.infrastructure.database.session import pg_session_maker
 from task_scheduler.infrastructure.hasher import BcryptHasher
@@ -80,6 +80,10 @@ class AppProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_task_gateway(self, session: AsyncSession) -> TaskGateway:
         return PgTaskGateway(db_session=session)
+
+    @provide(scope=Scope.REQUEST)
+    def get_task_event_gateway(self, session: AsyncSession) -> TaskEventGateway:
+        return PgTaskEventGateway(db_session=session)
 
     @provide(scope=Scope.APP)
     def get_celery(self, config: Config) -> Iterator[Celery]:
